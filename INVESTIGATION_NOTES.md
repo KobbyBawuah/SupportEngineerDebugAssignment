@@ -79,6 +79,40 @@ if (includeHeader) {
 - Poor user experience
 - Data loss (user thinks task was created but it wasn't)
 
+### Fix Applied: ✅
+
+**File changed:** `TaskEndpoints.cs:26-33`
+
+**Before:**
+```csharp
+var clientTimestamp = ctx.Request.Headers["X-Client-Timestamp"].ToString();
+var createdAt = DateTime.Parse(clientTimestamp);
+```
+
+**After:**
+```csharp
+var clientTimestamp = ctx.Request.Headers["X-Client-Timestamp"].ToString();
+DateTime createdAt;
+if (!DateTime.TryParse(clientTimestamp, out createdAt))
+{
+    logger.LogWarning("Invalid or missing X-Client-Timestamp header: '{Header}'. Using server time.", clientTimestamp);
+    createdAt = DateTime.UtcNow;
+}
+```
+
+**Changes made:**
+1. Used `DateTime.TryParse()` instead of `DateTime.Parse()` to safely handle invalid input
+2. Fall back to `DateTime.UtcNow` when header is missing/invalid
+3. Added logging to track when fallback is used (helps with monitoring)
+4. Injected `ILogger<Program>` for logging capability
+
+**Tests added:** `TaskApiTests.cs`
+- `CreateTask_ShouldReturn201_WhenTimestampHeaderMissing` — verifies API works without header
+- `CreateTask_ShouldReturn201_WhenTimestampHeaderEmpty` — verifies API works with empty header
+
+**What was NOT fixed (intentionally):**
+- UI (`main.js`) random header behavior — the API should be defensive regardless of client behavior. The UI fix can be a follow-up ticket. This keeps the fix minimal and server-side, which is safer for production.
+
 ---
 
 ## Issue #2: Tasks list is slow for some users

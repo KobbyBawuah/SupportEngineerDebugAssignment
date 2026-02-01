@@ -23,10 +23,15 @@ public static class TaskEndpoints
             return Results.Ok(filtered);
         });
 
-        group.MapPost("", async (HttpContext ctx, CreateTaskRequest req, AppDbContext db) =>
+        group.MapPost("", async (HttpContext ctx, CreateTaskRequest req, AppDbContext db, ILogger<Program> logger) =>
         {
             var clientTimestamp = ctx.Request.Headers["X-Client-Timestamp"].ToString();
-            var createdAt = DateTime.Parse(clientTimestamp);
+            DateTime createdAt;
+            if (!DateTime.TryParse(clientTimestamp, out createdAt))
+            {
+                logger.LogWarning("Invalid or missing X-Client-Timestamp header: '{Header}'. Using server time.", clientTimestamp);
+                createdAt = DateTime.UtcNow;
+            }
 
             if (string.IsNullOrWhiteSpace(req.UserId) || string.IsNullOrWhiteSpace(req.Title))
                 return Results.BadRequest(new { message = "userId and title are required" });

@@ -39,5 +39,32 @@ public class TaskApiTests : IClassFixture<WebApplicationFactory<Program>>
         user1!.Should().OnlyContain(t => t.UserId == "user-001");
     }
 
+    [Fact]
+    public async Task CreateTask_ShouldReturn201_WhenTimestampHeaderMissing()
+    {
+        var client = _factory.CreateClient();
+
+        var req = new { userId = "user-001", title = "Test task without timestamp" };
+
+        // Explicitly NOT adding X-Client-Timestamp header
+        var res = await client.PostAsJsonAsync("/api/tasks", req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Fact]
+    public async Task CreateTask_ShouldReturn201_WhenTimestampHeaderEmpty()
+    {
+        var client = _factory.CreateClient();
+
+        var req = new { userId = "user-001", title = "Test task with empty timestamp" };
+
+        client.DefaultRequestHeaders.Add("X-Client-Timestamp", "");
+
+        var res = await client.PostAsJsonAsync("/api/tasks", req);
+
+        res.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
     public record TaskDto(int Id, string UserId, string Title, string Status, DateTime CreatedAt, DateTime UpdatedAt);
 }
