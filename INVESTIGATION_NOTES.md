@@ -190,6 +190,55 @@ var filtered = await db.Tasks
 - Scales poorly as data grows
 - All users affected equally (not just "heavy" users)
 
+### Fix Applied: ✅
+
+**File changed:** `TaskEndpoints.cs:13-21`
+
+**Before:**
+```csharp
+var all = await db.Tasks.AsNoTracking().ToListAsync();
+
+var filtered = all
+    .Where(t => t.UserId == userId)
+    .OrderByDescending(t => t.CreatedAt)
+    .Take(Math.Clamp(limit ?? 50, 1, 200))
+    .ToList();
+```
+
+**After:**
+```csharp
+var filtered = await db.Tasks
+    .AsNoTracking()
+    .Where(t => t.UserId == userId)
+    .OrderByDescending(t => t.CreatedAt)
+    .Take(Math.Clamp(limit ?? 50, 1, 200))
+    .ToListAsync();
+```
+
+**What changed:**
+1. Moved `Where()`, `OrderByDescending()`, and `Take()` BEFORE `ToListAsync()`
+2. Entity Framework now translates these to SQL (WHERE, ORDER BY, LIMIT)
+3. Database does the filtering, not C# memory
+
+**Expected SQL after fix:**
+```sql
+SELECT ... FROM "Tasks" WHERE "UserId" = @userId ORDER BY "CreatedAt" DESC LIMIT @limit
+```
+
+**Verification:**
+
+BEFORE fix (reverted to test):
+- SQL: `SELECT ... FROM "Tasks" AS "t"` — no WHERE, no LIMIT
+- Time: **265ms**
+
+AFTER fix:
+- SQL: `SELECT ... FROM "Tasks" WHERE "UserId" = @__userId_0 ORDER BY "CreatedAt" DESC LIMIT @__p_1`
+- Times: user-001: 89ms (cold), 31ms, 9ms, 4ms | user-002: 15ms, 10ms, 9ms, 13ms
+
+**Result: ~10x performance improvement** (265ms → 4-30ms)
+
+**Tests:** Existing `ListTasks_ShouldReturnOnlyRequestedUser` test still passes — behavior unchanged, just performance improved.
+
 ---
 
 ## Issue #3: Duplicates / wrong order after refresh

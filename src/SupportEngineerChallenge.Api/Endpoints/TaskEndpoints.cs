@@ -12,13 +12,12 @@ public static class TaskEndpoints
 
         group.MapGet("", async (string userId, int? limit, AppDbContext db) =>
         {
-            var all = await db.Tasks.AsNoTracking().ToListAsync();
-
-            var filtered = all
+            var filtered = await db.Tasks
+                .AsNoTracking()
                 .Where(t => t.UserId == userId)
                 .OrderByDescending(t => t.CreatedAt)
                 .Take(Math.Clamp(limit ?? 50, 1, 200))
-                .ToList();
+                .ToListAsync();
 
             return Results.Ok(filtered);
         });
