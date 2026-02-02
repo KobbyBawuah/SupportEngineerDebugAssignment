@@ -2,6 +2,7 @@
 
 **Title:** Post-Incident Improvements — Task Tracker  
 **Priority:** P2  
+**Rationale:** Server-side fixes are deployed and working. These follow-ups improve code quality and monitoring but don't block users. No data loss or customer-facing errors remain.  
 **Owner:** Kwabena Bawuah (Lead Support Engineer)
 
 ## Description

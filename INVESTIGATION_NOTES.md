@@ -44,6 +44,10 @@ System.FormatException: String '' was not recognized as a valid DateTime.
 Request finished HTTP/1.1 POST http://localhost:5000/api/tasks - 500 0 - 23.9864ms
 ```
 
+### Ruled Out
+- **User-specific issue:** Tested with multiple users (user-001, user-002) — same ~35% failure rate for all
+- **Request body validation:** Stack trace pointed directly to `DateTime.Parse` on header, not body validation
+
 ### Root Cause
 
 **Location:** `TaskEndpoints.cs:29` + `main.js:59-66`
@@ -148,6 +152,10 @@ FROM "Tasks" AS "t"
 | user-005 | 123ms |
 
 Times are similar because ALL users load ALL tasks.
+
+### Ruled Out
+- **User-specific data volume:** All users had similar response times (~100-250ms) regardless of their task count
+- **Network latency:** SQL execution time was the bottleneck, not network — logs showed DB query taking most of the time
 
 ### Root Cause
 
@@ -260,6 +268,10 @@ AFTER fix:
 **After ~15 refreshes:** 800 rows, task ID 3987 repeated many times
 
 Each refresh triggers a GET request that returns 50 tasks, which get appended to the existing list instead of replacing it.
+
+### Ruled Out
+- **API returning duplicates:** Checked Network tab — API returned correct 50 unique items each time (HTTP 200)
+- **Browser caching / stale responses:** Fresh responses confirmed; issue was in how UI processed the response, not the response itself
 
 ### Root Cause
 
