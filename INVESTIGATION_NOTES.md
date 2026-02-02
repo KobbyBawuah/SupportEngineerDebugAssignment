@@ -294,6 +294,32 @@ state.tasks = items
 - Performance degrades as list grows
 - Memory usage increases unbounded
 
+### Fix Applied: ✅
+
+**File changed:** `main.js:46-47`
+
+**Before:**
+```javascript
+state.tasks = state.tasks.concat(items)
+  .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+```
+
+**After:**
+```javascript
+state.tasks = items
+  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+```
+
+**What changed:**
+1. Direct assignment (`= items`) replaces list instead of appending — no more duplicates
+2. `new Date()` comparison gives correct date ordering
+3. `b - a` sorts descending (newest first) to match API order
+
+**Verification:**
+- Loaded UI, clicked Refresh 3+ times
+- Row count stayed constant (no duplicates)
+- Order consistent (newest first by date)
+
 ---
 
 ## Test File Issue
@@ -315,8 +341,9 @@ error CS0246: The type or namespace name 'Fact' could not be found
 ---
 
 ## Next Steps
-- [ ] Reproduce and diagnose Issue #2 (slow lists)
-- [ ] Reproduce and diagnose Issue #3 (duplicates/ordering)
-- [ ] Fix test file compilation
-- [ ] Implement safe fixes
+- [x] Reproduce and diagnose Issue #1 (500 on create) ✅
+- [x] Reproduce and diagnose Issue #2 (slow lists) ✅
+- [x] Reproduce and diagnose Issue #3 (duplicates/ordering) ✅
+- [x] Fix test file compilation ✅
+- [x] Implement safe fixes ✅
 - [ ] Update RUNBOOK.md, INCIDENT.md, TICKET.md
